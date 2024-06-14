@@ -1,0 +1,135 @@
+Abilities and Mechanics
+-----------------------
+Damage Types and Tags
+---------------------
+- Physical: Weapon
+  Physical damage is straightforward and brutal, relying on sheer force and weaponry to harm opponents. It includes slashing, piercing, and blunt attacks that are simple yet effective in most battles.
+  
+- Fire: Elemental
+  Fire damage harnesses the destructive power of flames, scorching enemies and igniting surroundings. This elemental force is both a source of light and devastation, consuming anything in its path.
+
+- Water: Elemental
+  Water damage uses the fluid and adaptable nature of water to overwhelm foes. This type can drown, erode, or chill, making it versatile and formidable against those vulnerable to its currents.
+
+- Earth: Elemental
+  Earth damage draws from the solid, grounding power of the earth, using rocks, soil, and natural strength to crush and incapacitate. It is a reliable and resilient force, embodying stability and strength.
+
+- Wind: Elemental
+  Wind damage employs the swift and invisible force of the air, slicing through with gusts or buffeting opponents with powerful storms. It represents agility and the ever-present power of the atmosphere.
+
+- Verdant: Elemental, Life
+  Verdant damage is nature's wrath, wielding the life force of plants and the environment. It can entangle, poison, or rejuvenate, showcasing the dual nature of growth and decay inherent in the natural world.
+
+- Poison: Death
+  Poison damage is insidious and lingering, seeping into the body to cause prolonged suffering and eventual demise. This type symbolizes decay and corruption, slowly eroding life from within.
+
+- Ice: Elemental
+  Ice damage freezes and shatters, harnessing the chilling cold to immobilize and fracture. It embodies the harshness of winter, capable of halting even the fiercest flames and toughest defenses.
+
+- Lightning: Elemental
+  Lightning damage strikes with speed and intensity, using electrical currents to shock and burn. It is unpredictable and powerful, representing the raw energy of a storm and the precision of a lightning bolt.
+
+- Force: Magic
+  Force damage uses pure magical energy to create kinetic impacts, pushing, pulling, or crushing targets with invisible strength. It is the essence of magical might without elemental alignment.
+
+- Necrotic: Magic, Death
+  Necrotic damage saps life and vitality, leaving nothing but decay and death in its wake. It is a dark magic that embodies entropy and the inevitable end, feared for its ability to drain the essence of life.
+
+- Radiant: Magic, Life
+  Radiant damage is the embodiment of light and purity, burning away darkness and evil with its brilliance. It is often associated with holy power, capable of healing and destroying in equal measure.
+
+- Shadow: Magic, Death
+  Shadow damage weaves through darkness, using the absence of light to harm and confuse. It represents the unseen threats and the lurking fears, a magic that thrives in the void.
+
+- Psychic: Magic, Mental
+  Psychic damage attacks the mind, using mental prowess to disrupt thoughts and overwhelm the senses. It is a subtle and powerful force, bending reality through sheer will and intellect.
+
+- Arcane: Magic, Cosmic
+  Arcane damage taps into the fundamental forces of the universe, wielding ancient and esoteric magic. It is the purest form of magical energy, connecting to the cosmic truths and the fabric of reality.
+
+- Holy: Magic, Life
+  Holy damage channels divine energy, smiting the unholy and healing the righteous. It is the light of sanctity, used to protect and purify, often associated with the divine and sacred.
+
+- Dark: Magic, Death
+  Dark damage harnesses the power of evil and malevolence, using curses and shadowy forces to weaken and destroy. It is the antithesis of holy power, thriving in corruption and fear.
+
+- Temporal: Cosmic, Death
+  Temporal damage manipulates time, aging foes prematurely or trapping them in endless loops. It is a cosmic force that intersects with the inevitability of death, altering the very fabric of existence.
+
+- Void: Cosmic, Mental
+  Void damage draws from the emptiness beyond reality, using the abyss to unnerve and annihilate. It is a mental and cosmic force, representing the ultimate unknown and the dissolution of existence.
+
+- Astral: Cosmic
+  Astral damage channels the energies of the stars and the ether, tapping into the mystical and otherworldly. It is a cosmic force that connects the physical and the spiritual, guiding and disrupting with celestial power.
+
+- Celestial: Cosmic, Life
+  Celestial damage uses the light and power of the heavens, a cosmic force that nurtures life and eradicates darkness. It embodies the divine and the eternal, bringing both salvation and judgment from above.
+
+Ability Types and Mechanics
+---------------------------
+1. Attacking Abilities
+   - Direct Damage: Deals immediate damage to the target. Damage may be based on a randomized roll between set values or a simple set value. The damage can be scaled by the ability's power value.
+   - Damage Over Time (DoT): Inflicts damage over several turns. The turn duration and damage can be scaled by the ability's power value.
+   - Critical Hits: Chance to deal extra damage with an attack.
+   - Elemental Damage: Deals damage of a specific type (e.g., fire, ice, lightning) which may come with a chance of inflicting an associated elemental status effect. Damage may be based on a randomized roll between set values or a simple set value and can be scaled by the ability's power value.
+   - Piercing Attacks: Ignores a portion of the target's defense. Damage may be based on a randomized roll between set values or a simple set value and can be scaled by the ability's power value.
+   - Life Steal: Heals the attacker for an integer amount of the damage dealt. Damage may be based on a randomized roll between set values or a simple set value and can be scaled by the ability's power value.
+
+2. Blocking and Defensive Abilities
+   - Damage Reduction: Reduces incoming damage by a specified flat amount.
+   - Dodge/Parry: Chance to completely avoid an incoming attack.
+   - Reflect Damage: Reflects a portion of the incoming damage back to the attacker.
+   - Barrier: Creates a shield that absorbs a certain amount of damage before it affects health.
+   - Temporary Invincibility: Makes the character immune to all damage for a short period.
+   - Summon: Works similarly to barriers, rolling their own ability each turn.
+   - Conditional Negation: Blocks a certain amount of damage and negates specific types of abilities (e.g., block 5 of any elemental damage and negate all fire abilities).
+
+3. Healing Abilities
+   - Direct Healing: Restores a certain amount of health immediately.
+   - Healing Over Time (HoT): Restores health gradually over several turns.
+   - Self-Recovery: Recovers the user's health by a set or randomized value if their health is reduced to 0. Limited to a certain number of uses per battle.
+
+4. Anti-Healing Abilities
+   - Healing Reduction: Reduces the effectiveness of healing abilities used on the target.
+   - Healing Block: Completely prevents the target from receiving healing for a certain period.
+   - Reverse Heal: Turns healing effects into damage on the target.
+
+5. Status Effect Abilities
+   - Poison: Inflicts damage over time and can stack.
+   - Burn: Deals fire damage over time and may reduce the target’s defense.
+   - Freeze: Prevents the target from taking actions for a certain number of turns.
+   - Stun: Disables opponent abilities for a number of turns. Can target a random ability or the ability the opponent used on the same turn.
+   - Paralyze: Chance each turn that the target cannot act.
+   - Blind: Reduces the target’s accuracy.
+   - Silence: Prevents the target from using abilities.
+   - Sleep: Puts the target to sleep, preventing actions until they take damage.
+   - Curse: Reduces the target's resistances.
+
+6. Buffing Abilities
+   - Speed Boost: Increases the character’s turn frequency.
+   - Critical Hit Boost: Increases the chance of landing a critical hit.
+   - Elemental Resistance: Reduces damage from specific elemental types.
+
+7. Debuffing Abilities
+   - Speed Reduction: Decreases the target’s turn frequency.
+   - Accuracy Reduction: Lowers the target’s chance to hit.
+   - Defense Reduction: Makes the target more susceptible to damage.
+
+8. Resource Management Abilities
+   - Cooldown Refresh: Refreshes the cooldowns of other abilities.
+
+9. Utility Abilities
+   - Scout: Unique abilities, that when used by the player, may unlock one of their opponent's signature abilities for their own use. When used by an NPC enemy, may add one of the player's abilities to their move pool for that battle.
+
+10. Combination Abilities
+    - Multi-Mechanic Abilities: Abilities that incorporate two or more mechanics from the above categories.
+
+11. Limitation Mechanics
+    - Usage Limits: Certain powerful abilities can only be used a limited number of times per battle.
+    - Cooldowns: Abilities that can only be used again after a certain number of turns.
+
+Turn-Based Combat Resolution
+----------------------------
+- Simultaneous Turn Resolution: Both player and enemy actions are resolved simultaneously.
+- Action Rolling: Actions are rolled from available ability pools based on weights.
+- Effect Processing: Effects are applied based on the interaction of rolled abilities.
