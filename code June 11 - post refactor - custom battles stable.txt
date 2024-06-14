@@ -1,0 +1,1616 @@
+import java.util.Arrays; 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+
+// ==========================================================
+// Text-Based RPG
+// ==========================================================
+// Project Description:
+// This is a text-based RPG game with turn-based combat, developed 
+// using Processing 4.3. The game features a low-tech fantasy 
+// environment with magical elements. Players can configure their 
+// abilities before battles, engage in automated turn-based combat, 
+// receive post-battle rewards, and customize their ability loadout 
+// between battles. The game supports both PC and Android platforms.
+//
+// Core Features:
+// - Ability Loadout Setup
+// - Turn-Based Combat
+// - Post-Battle Rewards
+// - Customization
+// - Game Saves
+//
+// Game Screens:
+// - New Game Screen
+// - Reward Screen
+// - Customization Screen
+// - Battle Screen
+// - Story Screen
+//
+// Author: Pijus Zadeikis
+// Project Start Date: June 6th, 2024
+// ==========================================================
+
+import processing.core.PApplet;
+
+// ==========================================================
+// MAIN CLASS
+// ==========================================================
+public class TextBasedRPG extends PApplet {
+    GameScreenManager screenManager;
+    public static Character player;
+    static final int PLAYER_STARTING_HP = 100;
+    static final int ENEMY_STARTING_HP = 100;
+
+    public static void main(String[] args) {
+        PApplet.main("TextBasedRPG");
+    }
+
+    public void settings() {
+        size(800, 1800); // Window size
+    }
+
+    public void setup() {
+        screenManager = new GameScreenManager(this);
+        screenManager.showScreen(new TitleScreen(this, screenManager));
+    }
+
+    public void draw() {
+        screenManager.update();
+        screenManager.draw();
+    }
+
+    public void keyPressed() {
+        screenManager.keyPressed();
+    }
+
+    public void mouseWheel(MouseEvent event) {
+        if (screenManager.getActiveScreen() instanceof BattleScreen) {
+            ((BattleScreen) screenManager.getActiveScreen()).mouseWheel(event);
+        }
+    }
+}
+
+// ==========================================================
+// GAME SCREEN INTERFACE
+// This interface defines the common methods that all game 
+// screens must implement: init(), update(), draw(), dispose(),
+//  and keyPressed().
+// ==========================================================
+interface GameScreen {
+    void init();
+    void update();
+    void draw();
+    void dispose();
+    void keyPressed();
+}
+// ==========================================================
+// GAME SCREEN MANAGER CLASS
+// The GameScreenManager class is responsible for managing the active screen, 
+// handling transitions between screens, and delegating the update(), draw(), 
+// and keyPressed() methods to the active screen.
+// ==========================================================
+class GameScreenManager {
+    private PApplet applet;
+    private GameScreen activeScreen;
+    private GameDataManager dataManager;
+
+    public GameScreenManager(PApplet applet) {
+        this.applet = applet;
+        this.dataManager = new GameDataManager();
+    }
+
+    public void showScreen(GameScreen screen) {
+        if (activeScreen != null) {
+            activeScreen.dispose();
+        }
+        activeScreen = screen;
+        activeScreen.init();
+    }
+
+    public void update() {
+        if (activeScreen != null) {
+            activeScreen.update();
+        }
+    }
+
+    public void draw() {
+        if (activeScreen != null) {
+            activeScreen.draw();
+        }
+    }
+
+    public void keyPressed() {
+        if (activeScreen != null) {
+            activeScreen.keyPressed();
+        }
+    }
+
+    public GameScreen getActiveScreen() {
+        return activeScreen;
+    }
+
+    public GameDataManager getDataManager() {
+        return dataManager;
+    }
+}
+
+// ==========================================================
+// TITLE SCREEN CLASS
+// This TitleScreen class implements the GameScreen interface 
+// and manages the title screen where players can select options
+// such as starting a new game or entering a custom battle. 
+// It handles the user input to navigate through the options 
+// and to select an option
+// ==========================================================
+class TitleScreen implements GameScreen {
+    private PApplet applet;
+    private GameScreenManager screenManager;
+    private String[] options = {"New Game", "Load Game", "Custom Battle"};
+    private int selectedOption = 0;
+
+    public TitleScreen(PApplet applet, GameScreenManager screenManager) {
+        this.applet = applet;
+        this.screenManager = screenManager;
+    }
+
+    @Override
+    public void init() {
+        // Initialization code for the title screen
+    }
+
+    @Override
+    public void update() {
+        // Update logic for the title screen
+    }
+
+    @Override
+    public void draw() {
+        applet.background(0);
+        applet.fill(255);
+        applet.textAlign(PApplet.CENTER, PApplet.CENTER);
+        applet.textSize(32);
+        applet.text("Title Screen", applet.width / 2, applet.height / 4);
+
+        applet.textSize(24);
+        for (int i = 0; i < options.length; i++) {
+            if (i == selectedOption) {
+                applet.fill(200, 200, 50); // Highlight selected option
+            } else {
+                applet.fill(255);
+            }
+            applet.text(options[i], applet.width / 2, applet.height / 2 + i * 30);
+        }
+    }
+
+    @Override
+    public void dispose() {
+        // Cleanup code for the title screen
+    }
+
+    @Override
+    public void keyPressed() {
+        if (applet.keyCode == PApplet.UP) {
+            selectedOption = (selectedOption - 1 + options.length) % options.length;
+        } else if (applet.keyCode == PApplet.DOWN) {
+            selectedOption = (selectedOption + 1) % options.length;
+        } else if (applet.keyCode == PApplet.ENTER) {
+            switch (selectedOption) {
+                case 0:
+                    screenManager.showScreen(new NewGameScreen(applet, screenManager));
+                    break;
+                case 2: // Custom Battle option
+                    screenManager.showScreen(new CustomBattleScreen(applet, screenManager));
+                    break;
+                // Add additional cases for other options if needed
+            }
+        }
+    }
+}
+// ==========================================================
+// NEW GAME SCREEN CLASS
+// This NewGameScreen class implements the GameScreen interface
+//  and manages the screen where players can enter their name
+//  before starting the game. It handles the user input for 
+// entering the name and initializes the player character with 
+// a set of default abilities.
+// ==========================================================
+class NewGameScreen implements GameScreen {
+    private PApplet applet;
+    private GameScreenManager screenManager;
+    private String playerName = "";
+    private final int MAX_NAME_LENGTH = 16;
+
+    public NewGameScreen(PApplet applet, GameScreenManager screenManager) {
+        this.applet = applet;
+        this.screenManager = screenManager;
+    }
+
+    @Override
+    public void init() {
+        // Initialization code for the new game screen
+    }
+
+    @Override
+    public void update() {
+        // Update logic for the new game screen
+    }
+
+    @Override
+    public void draw() {
+        applet.background(0);
+        applet.fill(255);
+        applet.textAlign(PApplet.CENTER, PApplet.CENTER);
+        applet.textSize(24);
+
+        int centerX = applet.width / 2;
+        int centerY = applet.height / 2;
+
+        // Display text as per the provided example
+        applet.text("====== Enter Player Name ======", centerX, centerY - 60);
+        applet.text(playerName + "_", centerX, centerY - 30); // Display the current player name with a cursor
+        applet.text("====== Press To Continue ======", centerX, centerY);
+
+        applet.textAlign(PApplet.CENTER, PApplet.CENTER);
+    }
+
+    @Override
+    public void dispose() {
+        // Cleanup code for the new game screen
+    }
+
+    @Override
+    public void keyPressed() {
+        if (applet.key == PApplet.BACKSPACE) {
+            handleBackspace();
+        } else if (applet.keyCode == PApplet.ENTER) {
+            handleEnter();
+        } else {
+            handleCharacterInput(applet.key);
+        }
+    }
+
+    private void handleBackspace() {
+        if (playerName.length() > 0) {
+            playerName = playerName.substring(0, playerName.length() - 1);
+        }
+    }
+
+    private void handleEnter() {
+        if (playerName.length() > 0) {
+            // Initialize the player character here
+            List<Ability> playerAbilities = new ArrayList<>();
+            playerAbilities.add(new Attack("Basic Attack", 1, 1, "Physical", "", 0));
+            playerAbilities.add(new Block("Shield Block", 1, 1, "Physical", "Fire", 2));
+            playerAbilities.add(new Heal("Quick Heal", 1, 1, "", "", 2));
+            playerAbilities.add(new ReverseHeal("Curse of Pain", 1, 1, "", "", 3));
+            playerAbilities.add(new Absorb("Fire Absorb", 1, 1, "Fire", "", 2));
+            playerAbilities.add(new Absorb("Phys Absorb", 1, 1, "Physical", "", 2));
+            TextBasedRPG.player = new Character(playerName, TextBasedRPG.PLAYER_STARTING_HP, playerAbilities);
+
+            screenManager.showScreen(new RewardScreen(applet, screenManager));
+        }
+    }
+
+    private void handleCharacterInput(char key) {
+        if (playerName.length() < MAX_NAME_LENGTH && isValidCharacter(key)) {
+            playerName += key;
+        }
+    }
+
+    private boolean isValidCharacter(char c) {
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-' || c == '_' || c == ' ';
+    }
+}
+
+// ==========================================================
+// REWARD SCREEN CLASS (Placeholder)
+// ==========================================================
+class RewardScreen implements GameScreen {
+    private PApplet applet;
+    private GameScreenManager screenManager;
+
+    public RewardScreen(PApplet applet, GameScreenManager screenManager) {
+        this.applet = applet;
+        this.screenManager = screenManager;
+    }
+
+    @Override
+    public void init() {
+        // Initialization code for the reward screen
+    }
+
+    @Override
+    public void update() {
+        // Update logic for the reward screen
+    }
+
+    @Override
+    public void draw() {
+        applet.background(0);
+        applet.fill(255);
+        applet.textAlign(PApplet.CENTER, PApplet.CENTER);
+        applet.textSize(24);
+        applet.text("Reward Screen Placeholder", applet.width / 2, applet.height / 2 - 30);
+        applet.text("Press ENTER to proceed to Customization", applet.width / 2, applet.height / 2);
+    }
+
+    @Override
+    public void dispose() {
+        // Cleanup code for the reward screen
+    }
+
+    @Override
+    public void keyPressed() {
+        if (applet.keyCode == PApplet.ENTER) {
+            screenManager.showScreen(new CustomizationScreen(applet, screenManager));
+        }
+    }
+}
+
+// ==========================================================
+// CUSTOMIZATION SCREEN CLASS (Placeholder)
+// ==========================================================
+class CustomizationScreen implements GameScreen {
+    private PApplet applet;
+    private GameScreenManager screenManager;
+
+    public CustomizationScreen(PApplet applet, GameScreenManager screenManager) {
+        this.applet = applet;
+        this.screenManager = screenManager;
+    }
+
+    @Override
+    public void init() {
+        // Initialization code for the customization screen
+    }
+
+    @Override
+    public void update() {
+        // Update logic for the customization screen
+    }
+
+    @Override
+    public void draw() {
+        applet.background(0);
+        applet.fill(255);
+        applet.textAlign(PApplet.CENTER, PApplet.CENTER);
+        applet.textSize(24);
+        applet.text("Customization Screen Placeholder", applet.width / 2, applet.height / 2 - 30);
+        applet.text("Press ENTER to proceed to Battle", applet.width / 2, applet.height / 2);
+    }
+
+    @Override
+    public void dispose() {
+        // Cleanup code for the customization screen
+    }
+
+    @Override
+    public void keyPressed() {
+        if (applet.keyCode == PApplet.ENTER) {
+            // Uncomment and implement the BattleScreen initialization when ready
+            // screenManager.showScreen(new BattleScreen(applet, screenManager));
+        }
+    }
+}
+
+// ==========================================================
+// BATTLE SCREEN CLASS
+// mplements the GameScreen interface and manages the screen 
+// where the battles take place. It handles the user input for 
+// progressing through turns, updates the battle log, and 
+// manages scrolling through the log.
+// ==========================================================
+class BattleScreen implements GameScreen {
+    private PApplet applet;
+    private GameScreenManager screenManager;
+    private Character player;
+    private Character enemy;
+    private boolean turnProcessed = false;
+    private StringBuilder battleLog;
+    private int logOffset; // Offset for scrolling the log
+    private int logHeight; // Total height of the log
+    private int visibleLogHeight; // Height of the visible log area
+    private int instructionsHeight; // Height of the instructions text
+
+    public BattleScreen(PApplet applet, GameScreenManager screenManager, Character enemy) {
+        this.applet = applet;
+        this.screenManager = screenManager;
+        this.player = screenManager.getDataManager().getPlayer();
+        this.enemy = enemy;
+        this.logOffset = 0;
+        this.logHeight = 0;  
+        this.instructionsHeight = 50; // Height of the instructions area
+        this.visibleLogHeight = applet.height - instructionsHeight - 20; // 20 pixels for top padding
+
+        if (this.player == null) {
+            System.out.println("Error: Player character is null.");
+        }
+        if (this.enemy == null) {
+            System.out.println("Error: Enemy character is null.");
+        }
+    }
+
+    @Override
+    public void init() {
+        // Ensure the battleLog is initialized
+        battleLog = new StringBuilder();
+
+        // Additional debug statements
+        System.out.println("BattleScreen initialized");
+        if (player != null) {
+            System.out.println("Player: " + player.name + ", Health: " + player.health);
+        } else {
+            System.out.println("Error: Player character is null during init.");
+        }
+        if (enemy != null) {
+            System.out.println("Enemy: " + enemy.name + ", Health: " + enemy.health);
+        } else {
+            System.out.println("Error: Enemy character is null during init.");
+        }
+    }
+
+    @Override
+    public void update() {
+        // Process a turn if the spacebar was pressed
+        if (turnProcessed) {
+            turnProcessed = false;
+
+            // Battle logic
+            DamageCalculator damageCalculator = new DamageCalculator();
+            BattleManager battleManager = new BattleManager(Arrays.asList(player, enemy), battleLog, damageCalculator);
+            battleManager.collectActions();
+            battleManager.resolveActions();
+            battleManager.applyStatusEffects();
+            battleManager.updateCharacterCooldowns();
+
+            // Log the battle outcome
+            battleLog.append(player.name + " HP = " + player.health + " | " + enemy.name + " HP = " + enemy.health + "\n");
+            battleLog.append("------------------------------------------------------------------------------------\n"); // Add the divider here
+            logHeight = calculateLogHeight();
+
+            // Update logOffset to keep the most recent logs in view
+            if (logHeight > visibleLogHeight) {
+                logOffset = logHeight - visibleLogHeight;
+            } else {
+                logOffset = 0;
+            }
+
+            // Check for battle end conditions
+            if (player.health <= 0 || enemy.health <= 0) {
+                battleLog.append("Battle ended!\n");
+                if (player.health <= 0) {
+                    battleLog.append("You have been defeated.\n");
+                } else {
+                    battleLog.append("You have defeated the " + enemy.name + ".\n");
+                }
+                battleLog.append("---------------------\n"); // Add the divider here
+                logHeight = calculateLogHeight();
+                if (logHeight > visibleLogHeight) {
+                    logOffset = logHeight - visibleLogHeight;
+                } else {
+                    logOffset = 0;
+                }
+            }
+        }
+    }
+
+    @Override
+    public void draw() {
+        applet.background(0);
+        applet.fill(255);
+        applet.textAlign(PApplet.LEFT, PApplet.TOP);
+        applet.textSize(16);
+
+        // Display battle log with scrolling
+        applet.pushMatrix();
+        applet.translate(20, 20 - logOffset); // Adjust for top padding
+        applet.text(battleLog.toString(), 0, 0);
+        applet.popMatrix();
+
+        // Instructions to proceed to the next turn
+        applet.textAlign(PApplet.LEFT, PApplet.BOTTOM);
+        applet.text("Press SPACE to advance to the next turn.", 20, applet.height - 20);
+    }
+
+    @Override
+    public void dispose() {
+        // Cleanup code for the battle screen
+    }
+
+    @Override
+    public void keyPressed() {
+        // Handle spacebar press to process the next turn
+        if (applet.key == ' ') {
+            turnProcessed = true;
+        }
+    }
+
+    // Updated method to accept MouseEvent
+    public void mouseWheel(MouseEvent event) {
+        float e = event.getCount();
+        logOffset += e * 20; // Adjust scroll speed if needed
+        logOffset = PApplet.constrain(logOffset, 0, PApplet.max(0, logHeight - visibleLogHeight));
+    }
+
+    // Calculate the height of the log for scrolling
+    private int calculateLogHeight() {
+        String[] lines = battleLog.toString().split("\n");
+        int lineHeight = (int) (applet.textAscent() + applet.textDescent());
+        int lineSpacing = 4; // Add a margin for spacing between lines
+        return lines.length * (lineHeight + lineSpacing);
+    }
+}
+
+// ==========================================================
+// ABILITY CLASS 
+// Ability(String name, int power, int weight, String primaryType, String secondaryType, int cooldown)
+// defines common properties and methods for all abilities. 
+// Subclasses must implement the output(), generateMessage(), and clone() methods.
+// ==========================================================
+abstract class Ability {
+    String name;
+    int power;
+    int weight;
+    String primaryType;
+    String secondaryType;
+    boolean isDisabled;
+    int cooldown;
+    int currentCooldown;
+
+    Ability(String name, int power, int weight, String primaryType, String secondaryType, int cooldown) {
+        this.name = name;
+        this.power = power;
+        this.weight = weight;
+        this.primaryType = primaryType;
+        this.secondaryType = secondaryType;
+        this.isDisabled = false;
+        this.cooldown = cooldown;
+        this.currentCooldown = 0;
+    }
+
+    boolean canUse() {
+        return !isDisabled && currentCooldown == 0;
+    }
+
+    void resetCooldown() {
+        this.currentCooldown = cooldown;
+    }
+
+    void decrementCooldown() {
+        if (currentCooldown > 0) {
+            currentCooldown--;
+        }
+    }
+
+    abstract HashMap<String, Integer> output();
+    abstract String generateMessage(String casterName, int chance);
+    public abstract Ability clone();
+}
+
+// ==========================================================
+// ATTACK CLASS (INHERITS ABILITY)
+// ==========================================================
+class Attack extends Ability {
+    Attack(String name, int power, int weight, String primaryType, String secondaryType, int cooldown) {
+        super(name, power, weight, primaryType, secondaryType, cooldown);
+    }
+
+    @Override
+    HashMap<String, Integer> output() {
+        HashMap<String, Integer> effects = new HashMap<>();
+        effects.put(primaryType.toLowerCase() + "Damage", power); // Ensure lowercase and correct format
+        if (!secondaryType.isEmpty()) {
+            effects.put(secondaryType.toLowerCase() + "Damage", power); // Include secondary type if present
+        }
+        return effects;
+    }
+
+    @Override
+    String generateMessage(String casterName, int chance) {
+        String message = casterName + " attacks with " + name + " for " + power + " " + primaryType.toLowerCase() + " damage";
+        if (!secondaryType.isEmpty()) {
+            message += " and " + power + " " + secondaryType.toLowerCase() + " damage";
+        }
+        message += " (Power Level " + power + " | " + chance + "% Chance)";
+        return message;
+    }
+
+    @Override
+    public Attack clone() {
+        return new Attack(this.name, this.power, this.weight, this.primaryType, this.secondaryType, this.cooldown);
+    }
+}
+
+// ==========================================================
+// BLOCK CLASS (INHERITS ABILITY)
+// ==========================================================
+class Block extends Ability {
+    Block(String name, int power, int weight, String primaryType, String secondaryType, int cooldown) {
+        super(name, power, weight, primaryType, secondaryType, cooldown);
+    }
+
+    @Override
+    HashMap<String, Integer> output() {
+        HashMap<String, Integer> effects = new HashMap<>();
+        if (!primaryType.isEmpty()) {
+            effects.put(primaryType.toLowerCase() + "Blocked", power);
+        }
+        if (!secondaryType.isEmpty()) {
+            effects.put(secondaryType.toLowerCase() + "Blocked", power);
+        }
+        return effects;
+    }
+
+    @Override
+    String generateMessage(String casterName, int chance) {
+        String message = casterName + " uses " + name + " to block";
+        if (!primaryType.isEmpty()) {
+            message += " " + primaryType.toLowerCase();
+        }
+        if (!secondaryType.isEmpty()) {
+            message += " and " + secondaryType.toLowerCase();
+        }
+        message += " damage with a power of " + power + ".";
+        return message;
+    }
+
+    @Override
+    public Block clone() {
+        return new Block(this.name, this.power, this.weight, this.primaryType, this.secondaryType, this.cooldown);
+    }
+}
+
+// ==========================================================
+// HEAL CLASS (INHERITS ABILITY)
+// ==========================================================
+class Heal extends Ability {
+    Heal(String name, int power, int weight, String primaryType, String secondaryType, int cooldown) {
+        super(name, power, weight, primaryType, secondaryType, cooldown);
+    }
+
+    @Override
+    HashMap<String, Integer> output() {
+        HashMap<String, Integer> effects = new HashMap<>();
+        effects.put("heal", power);
+        return effects;
+    }
+
+    @Override
+    String generateMessage(String casterName, int chance) {
+        return casterName + " uses " + name + " to heal for " + power + " HP.";
+    }
+
+    @Override
+    public Heal clone() {
+        return new Heal(this.name, this.power, this.weight, this.primaryType, this.secondaryType, this.cooldown);
+    }
+}
+
+// ==========================================================
+// REVERSE HEAL CLASS (INHERITS ABILITY)
+// ==========================================================
+class ReverseHeal extends Ability {
+    ReverseHeal(String name, int power, int weight, String primaryType, String secondaryType, int cooldown) {
+        super(name, power, weight, primaryType, secondaryType, cooldown);
+    }
+
+    @Override
+    HashMap<String, Integer> output() {
+        HashMap<String, Integer> effects = new HashMap<>();
+        effects.put("reverseHeal", power);
+        return effects;
+    }
+
+    @Override
+    String generateMessage(String casterName, int chance) {
+        return casterName + " uses " + name + " to reverse up to " + power + " healing.";
+    }
+
+    @Override
+    public ReverseHeal clone() {
+        return new ReverseHeal(this.name, this.power, this.weight, this.primaryType, this.secondaryType, this.cooldown);
+    }
+}
+
+
+// ==========================================================
+// ABSORB CLASS (INHERITS ABILITY)
+// ==========================================================
+class Absorb extends Ability {
+    Absorb(String name, int power, int weight, String primaryType, String secondaryType, int cooldown) {
+        super(name, power, weight, primaryType, secondaryType, cooldown);
+    }
+
+    @Override
+    HashMap<String, Integer> output() {
+        HashMap<String, Integer> effects = new HashMap<>();
+        if (!primaryType.isEmpty()) {
+            effects.put(primaryType.toLowerCase() + "Absorbed", power);
+        }
+        if (!secondaryType.isEmpty()) {
+            effects.put(secondaryType.toLowerCase() + "Absorbed", power);
+        }
+        return effects;
+    }
+
+    @Override
+    String generateMessage(String casterName, int chance) {
+        String message = casterName + " uses " + name + " to absorb";
+        if (!primaryType.isEmpty()) {
+            message += " " + primaryType.toLowerCase();
+        }
+        if (!secondaryType.isEmpty()) {
+            message += " and " + secondaryType.toLowerCase();
+        }
+        message += " damage with a power of " + power + ".";
+        return message;
+    }
+
+    @Override
+    public Absorb clone() {
+        return new Absorb(this.name, this.power, this.weight, this.primaryType, this.secondaryType, this.cooldown);
+    }
+}
+
+
+// ==========================================================
+// CHARACTER CLASS
+/* represents a game character with health, abilities, status effects,
+ resistances, and other attributes. It provides methods to choose an action,
+  apply an effect, calculate damage, update ability cooldowns,
+   reset block and absorb effects, and calculate absorbed damage. */
+// ==========================================================
+class Character {
+    String name;
+    int health;
+    List<Ability> abilities;
+    List<Effect> statusEffects;
+    Map<String, Integer> flatResistances;
+    Map<String, Integer> percentResistances;
+    Map<String, Integer> bonusDamage;
+    Map<String, Integer> blockEffects;
+    Map<String, Integer> absorbEffects;
+    int baseCritChance;
+    private static final Random random = new Random();
+
+    Character(String name, int health, List<Ability> abilities) {
+        this.name = name;
+        this.health = health;
+        this.abilities = abilities;
+        this.statusEffects = new ArrayList<>();
+        this.flatResistances = new HashMap<>();
+        this.percentResistances = new HashMap<>();
+        this.bonusDamage = new HashMap<>();
+        this.blockEffects = new HashMap<>();
+        this.absorbEffects = new HashMap<>();
+        this.baseCritChance = 10; // Example base crit chance (10%)
+
+        // Initialize resistances, bonus damage, block effects, and absorb effects to 0
+        initializeResistancesAndBonuses();
+    }
+
+    private void initializeResistancesAndBonuses() {
+        String[] damageTypes = {"physical", "fire", "water", "earth", "wind", "verdant", "poison", "ice", "lightning", "force", "necrotic", "radiant", "shadow", "psychic", "arcane", "holy", "dark", "temporal", "void", "astral", "celestial"};
+        for (String type : damageTypes) {
+            flatResistances.put(type, 0);
+            percentResistances.put(type, 0);
+            bonusDamage.put(type, 0);
+            blockEffects.put(type, 0);
+            absorbEffects.put(type, 0);
+        }
+    }
+
+    Ability chooseAction() {
+        int totalWeight = 0;
+        List<Ability> availableAbilities = new ArrayList<>();
+
+        for (Ability ability : abilities) {
+            if (ability.canUse()) {
+                availableAbilities.add(ability);
+                totalWeight += ability.weight;
+            }
+        }
+
+        if (availableAbilities.isEmpty()) {
+            return null; // No available action
+        }
+
+        int randomNumber = random.nextInt(totalWeight);
+        int cumulativeWeight = 0;
+
+        for (Ability ability : availableAbilities) {
+            cumulativeWeight += ability.weight;
+            if (randomNumber < cumulativeWeight) {
+                return ability;
+            }
+        }
+
+        return availableAbilities.get(availableAbilities.size() - 1); // Fallback
+    }
+
+    void updateCooldowns() {
+        for (Ability ability : abilities) {
+            ability.decrementCooldown();
+        }
+    }
+
+    void resetBlockEffects() {
+        for (String type : blockEffects.keySet()) {
+            blockEffects.put(type, 0);
+        }
+    }
+
+    void resetAbsorbEffects() {
+        for (String type : absorbEffects.keySet()) {
+            absorbEffects.put(type, 0);
+        }
+    }
+
+    int calculateAbsorbedDamage(String type, int absorbValue) {
+        int absorbedAmount = 0;
+        if (absorbEffects.containsKey(type.replace("Damage", "").toLowerCase())) {
+            absorbedAmount = Math.min(absorbEffects.get(type.replace("Damage", "").toLowerCase()), absorbValue);
+        }
+        return absorbedAmount;
+    }
+}
+
+
+// ==========================================================
+// EFFECT CLASS
+// epresents an effect that can be applied to a character,
+//  such as damage, healing, or status effects. It has a type, magnitude, and duration.
+// ==========================================================
+class Effect {
+    String type;
+    int magnitude;
+    int duration;
+
+    Effect(String type, int magnitude, int duration) {
+        this.type = type;
+        this.magnitude = magnitude;
+        this.duration = duration;
+    }
+}
+
+// ==========================================================
+// BATTLE MANAGER CLASS
+// Manages the turn-based battle logic, including action collection, resolution, and status effect application.
+// ==========================================================
+class BattleManager {
+    private List<Character> characters;
+    private StringBuilder battleLog;
+    private EffectHandler effectHandler;
+    private StatusEffectManager statusEffectManager;
+
+    public BattleManager(List<Character> characters, StringBuilder battleLog, DamageCalculator damageCalculator) {
+        this.characters = characters;
+        this.battleLog = battleLog;
+        this.effectHandler = new EffectHandler(damageCalculator);
+        this.statusEffectManager = new StatusEffectManager();
+    }
+
+    public void collectActions() {
+        for (Character character : characters) {
+            Ability action = character.chooseAction();
+            if (action != null) {
+                // Collect actions
+            }
+        }
+    }
+
+    public void resolveActions() {
+        // Track healing and heal reversals to apply them properly
+        Map<Character, Integer> healingMap = new HashMap<>();
+        Map<Character, Integer> reverseHealingMap = new HashMap<>();
+        Map<Character, Map<String, Integer>> absorbMap = new HashMap<>();
+
+        for (Character character : characters) {
+            absorbMap.put(character, new HashMap<>());
+        }
+
+        for (Character character : characters) {
+            Ability action = character.chooseAction();
+            if (action != null) {
+                HashMap<String, Integer> effects = action.output();
+                for (String effectType : effects.keySet()) {
+                    int magnitude = effects.get(effectType);
+                    Effect effect = new Effect(effectType, magnitude, 0); // Duration set to 0 for non-status effects
+
+                    if (effectType.endsWith("Blocked") || effectType.endsWith("Absorbed")) {
+                        effectHandler.applyEffect(character, effect);
+                        if (effectType.endsWith("Absorbed")) {
+                            String absorbType = effectType.replace("Absorbed", "").toLowerCase();
+                            absorbMap.get(character).put(absorbType, absorbMap.get(character).getOrDefault(absorbType, 0) + magnitude);
+                        }
+                    } else {
+                        if (effectType.equals("heal")) {
+                            healingMap.put(character, healingMap.getOrDefault(character, 0) + magnitude);
+                        } else if (effectType.equals("reverseHeal")) {
+                            reverseHealingMap.put(character, reverseHealingMap.getOrDefault(character, 0) + magnitude);
+                        } else {
+                            Character target = characters.get((characters.indexOf(character) + 1) % characters.size());
+                            effectHandler.applyEffect(target, effect);
+                        }
+                    }
+
+                    battleLog.append(character.name + " uses " + action.name + " (Power Level " + action.power + "). ");
+                    if (effectType.contains("Damage")) {
+                        battleLog.append("Deals " + magnitude + " " + effectType.replace("Damage", "") + " damage.\n");
+                    } else if (effectType.equals("heal")) {
+                        battleLog.append("Heals for " + magnitude + ".\n");
+                    } else if (effectType.equals("reverseHeal")) {
+                        battleLog.append("Reverses heal for " + magnitude + ".\n");
+                    } else if (effectType.contains("Blocked")) {
+                        battleLog.append("Blocks " + magnitude + " " + effectType.replace("Blocked", "") + " damage.\n");
+                    } else if (effectType.contains("Absorbed")) {
+                        battleLog.append("Absorbs " + magnitude + " " + effectType.replace("Absorbed", "") + " damage.\n");
+                    }
+                }
+                action.resetCooldown();
+            }
+        }
+
+        // Apply healing and heal reversals
+        for (Character character : characters) {
+            int healing = healingMap.getOrDefault(character, 0);
+            int reverseHealing = reverseHealingMap.getOrDefault(character, 0);
+            if (reverseHealing > 0) {
+                if (healing > 0) {
+                    int netHealing = Math.max(0, healing - reverseHealing);
+                    int reversedHealing = 0;
+                    if (healing <= reverseHealing){
+                        reversedHealing = healing;
+                    }
+                    effectHandler.applyEffect(character, new Effect("heal", netHealing, 0));
+                    if (reversedHealing > 0) {
+                        effectHandler.applyEffect(character, new Effect("voidDamage", reversedHealing, 0));
+                    }
+                } else {
+                    //character.applyEffect(new Effect("voidDamage", reverseHealing, 0));
+                }
+            } else if (healing > 0) {
+                effectHandler.applyEffect(character, new Effect("heal", healing, 0));
+            }
+        }
+
+        // Apply absorb effects
+        for (Character character : characters) {
+            Map<String, Integer> absorbedEffects = absorbMap.get(character);
+            for (String type : absorbedEffects.keySet()) {
+                int absorbValue = absorbedEffects.get(type);
+                int totalDamage = 0;
+                for (Character other : characters) {
+                    if (other != character) {
+                        totalDamage += other.calculateAbsorbedDamage(type + "Damage", absorbValue);
+                    }
+                }
+                if (totalDamage > 0) {
+                    int absorbedAmount = Math.min(absorbValue, totalDamage);
+                    effectHandler.applyEffect(character, new Effect("heal", absorbedAmount, 0));
+                    battleLog.append(character.name + " absorbs " + absorbedAmount + " " + type + " damage and heals for " + absorbedAmount + ".\n");
+                }
+            }
+        }
+
+        // Reset block and absorb effects after resolving actions
+        for (Character character : characters) {
+            character.resetBlockEffects();
+            character.resetAbsorbEffects();
+        }
+    }
+
+    public void applyStatusEffects() {
+        statusEffectManager.applyStatusEffects(characters, effectHandler, battleLog);
+    }
+
+    public void updateCharacterCooldowns() {
+        for (Character character : characters) {
+            character.updateCooldowns();
+        }
+    }
+}
+
+// ==========================================================
+// CUSTOM BATTLE SCREEN CLASS
+/* Implements the GameScreen interface and manages the screen 
+ where players can set up a custom battle. It allows setting player
+   and enemy names, health, and abilities, and transitions to the 
+   battle screen once setup is complete. */
+// ==========================================================
+class CustomBattleScreen implements GameScreen {
+    private PApplet applet;
+    private GameScreenManager screenManager;
+    private String playerName;
+    private String enemyName;
+    private int playerHealth;
+    private int enemyHealth;
+    private List<Ability> playerAbilities;
+    private List<Ability> enemyAbilities;
+    private int selectedOption = 0;
+    private String[] options = {"Set Player Name", "Set Enemy Name", "Set Player Health", "Set Enemy Health", "Edit Player Abilities", "Edit Enemy Abilities", "Start Battle"};
+    private boolean inputMode = false;
+    private String currentInput = "";
+    private int inputTarget = -1; // 0: player name, 1: enemy name, 2: player health, 3: enemy health
+
+    public CustomBattleScreen(PApplet applet, GameScreenManager screenManager) {
+        this.applet = applet;
+        this.screenManager = screenManager;
+        GameDataManager dataManager = screenManager.getDataManager();
+
+        // Load existing player and enemy data if available
+        if (dataManager.getPlayer() != null) {
+            this.playerName = dataManager.getPlayer().name;
+            this.playerHealth = dataManager.getPlayer().health;
+            this.playerAbilities = dataManager.getPlayer().abilities;
+        } else {
+            this.playerName = "Player";
+            this.playerHealth = 100;
+            this.playerAbilities = new ArrayList<>();
+        }
+
+        if (dataManager.getEnemy() != null) {
+            this.enemyName = dataManager.getEnemy().name;
+            this.enemyHealth = dataManager.getEnemy().health;
+            this.enemyAbilities = dataManager.getEnemy().abilities;
+        } else {
+            this.enemyName = "Enemy";
+            this.enemyHealth = 100;
+            this.enemyAbilities = new ArrayList<>();
+        }
+
+        preAssignAbilities();
+    }
+
+    private void preAssignAbilities() {
+        if (playerAbilities.isEmpty()) {
+            // Initialize abilities
+            playerAbilities.add(new Attack("Physical Attack", 4, 200, "Physical", "", 0));
+            playerAbilities.add(new Attack("Fire Attack", 4, 200, "Fire", "", 0));
+            playerAbilities.add(new Attack("Physical and Fire Attack", 4, 200, "Physical", "Fire", 0));
+            playerAbilities.add(new Block("Physical Block", 4, 100, "Physical", "", 0));
+            playerAbilities.add(new Block("Fire Block", 4, 100, "Fire", "", 0));
+            playerAbilities.add(new Block("Physical and Fire Block", 4, 100, "Physical", "Fire", 0));
+            playerAbilities.add(new Absorb("Physical Absorb", 4, 100, "Physical", "", 0));
+            playerAbilities.add(new Absorb("Fire Absorb", 4, 100, "Fire", "", 0));
+            playerAbilities.add(new Absorb("Physical and Fire Absorb", 4, 100, "Physical", "Fire", 0));
+            playerAbilities.add(new Heal("Heal", 8, 100, "", "", 0));
+            playerAbilities.add(new ReverseHeal("Reverse Heal", 12, 100, "", "", 0));
+
+            for (Ability ability : playerAbilities) {
+                enemyAbilities.add(ability.clone());
+            }
+        }
+    }
+
+    @Override
+    public void init() {
+        // Initialization code
+    }
+
+    @Override
+    public void update() {
+        // Update logic
+    }
+
+    @Override
+    public void draw() {
+        applet.background(0);
+        applet.fill(255);
+        applet.textAlign(PApplet.CENTER, PApplet.CENTER);
+        applet.textSize(24);
+        applet.text("Custom Battle Setup", applet.width / 2, applet.height / 4);
+
+        applet.textSize(16);
+        applet.text("Player Name: " + playerName, applet.width / 2, applet.height / 2 - 80);
+        applet.text("Enemy Name: " + enemyName, applet.width / 2, applet.height / 2 - 60);
+        applet.text("Player Health: " + playerHealth, applet.width / 2, applet.height / 2 - 40);
+        applet.text("Enemy Health: " + enemyHealth, applet.width / 2, applet.height / 2 - 20);
+
+        for (int i = 0; i < options.length; i++) {
+            if (i == selectedOption) {
+                applet.fill(200, 200, 50); // Highlight selected option
+            } else {
+                applet.fill(255);
+            }
+            applet.text(options[i], applet.width / 2, applet.height / 2 + i * 20);
+        }
+
+        if (inputMode) {
+            applet.textSize(24);
+            applet.fill(150, 150, 250);
+            applet.text("Enter value: " + currentInput + "_", applet.width / 2, applet.height - 100);
+        }
+    }
+
+    @Override
+    public void dispose() {
+        // Cleanup code
+    }
+
+    @Override
+    public void keyPressed() {
+        if (inputMode) {
+            handleInput();
+        } else {
+            if (applet.keyCode == PApplet.UP) {
+                selectedOption = (selectedOption - 1 + options.length) % options.length;
+            } else if (applet.keyCode == PApplet.DOWN) {
+                selectedOption = (selectedOption + 1) % options.length;
+            } else if (applet.keyCode == PApplet.ENTER) {
+                handleEnter();
+            }
+        }
+    }
+
+    private void handleEnter() {
+        GameDataManager dataManager = screenManager.getDataManager();
+        dataManager.setPlayer(new Character(playerName, playerHealth, playerAbilities));
+        dataManager.setEnemy(new Character(enemyName, enemyHealth, enemyAbilities));
+        
+        switch (selectedOption) {
+            case 0:
+                inputMode = true;
+                inputTarget = 0;
+                currentInput = "";
+                break;
+            case 1:
+                inputMode = true;
+                inputTarget = 1;
+                currentInput = "";
+                break;
+            case 2:
+                inputMode = true;
+                inputTarget = 2;
+                currentInput = "";
+                break;
+            case 3:
+                inputMode = true;
+                inputTarget = 3;
+                currentInput = "";
+                break;
+            case 4:
+                screenManager.showScreen(new AbilitySelectionScreen(applet, screenManager, "Player", playerAbilities));
+                break;
+            case 5:
+                screenManager.showScreen(new AbilitySelectionScreen(applet, screenManager, "Enemy", enemyAbilities));
+                break;
+            case 6:
+                startCustomBattle();
+                break;
+        }
+    }
+
+    private void handleInput() {
+        if (applet.keyCode == PApplet.ENTER) {
+            inputMode = false;
+            switch (inputTarget) {
+                case 0:
+                    playerName = currentInput.substring(0, Math.min(currentInput.length(), 16));
+                    break;
+                case 1:
+                    enemyName = currentInput.substring(0, Math.min(currentInput.length(), 16));
+                    break;
+                case 2:
+                    playerHealth = Integer.parseInt(currentInput);
+                    break;
+                case 3:
+                    enemyHealth = Integer.parseInt(currentInput);
+                    break;
+            }
+        } else if (applet.keyCode == PApplet.BACKSPACE) {
+            if (currentInput.length() > 0) {
+                currentInput = currentInput.substring(0, currentInput.length() - 1);
+            }
+        } else if (applet.key >= '0' && applet.key <= '9' || (inputTarget < 2 && ((applet.key >= 'a' && applet.key <= 'z') || (applet.key >= 'A' && applet.key <= 'Z') || applet.key == ' ' || applet.key == '_'))) {
+            if (currentInput.length() < 16) {
+                currentInput += applet.key;
+            }
+        }
+    }
+
+     private void startCustomBattle() {
+        // Initialize player and enemy characters with updated attributes
+        Character player = new Character(playerName, playerHealth, playerAbilities);
+        Character enemy = new Character(enemyName, enemyHealth, enemyAbilities);
+
+        // Save the characters in the data manager
+        GameDataManager dataManager = screenManager.getDataManager();
+        dataManager.setPlayer(player);
+        dataManager.setEnemy(enemy);
+
+        // Transition to the battle screen with updated characters
+        screenManager.showScreen(new BattleScreen(applet, screenManager, enemy));
+    }
+}
+
+// ==========================================================
+// ABILITY SELECTION SCREEN CLASS
+/*  allows players to edit abilities for a specified entity (player or enemy).
+  It handles the user input for selecting and editing abilities, cycling 
+  through damage types, and modifying ability attributes. */
+// ==========================================================
+class AbilitySelectionScreen implements GameScreen {
+    private PApplet applet;
+    private GameScreenManager screenManager;
+    private String entityName;
+    private List<Ability> abilities;
+    private int selectedAbilityIndex = 0;
+    private boolean editingAbility = false;
+    private Ability currentAbility;
+    private String[] damageTypes = {"Physical", "Fire", "Water", "Earth", "Wind", "Verdant", "Poison", "Ice", "Lightning", "Force", "Necrotic", "Radiant", "Shadow", "Psychic", "Arcane", "Holy", "Dark", "Temporal", "Void", "Astral", "Celestial", ""};
+    private int editingField = 0; // 0: name, 1: power, 2: weight, 3: primaryType, 4: secondaryType, 5: cooldown, 6: remove ability
+    private boolean inputNameMode = false;
+    private String currentInput = "";
+
+    public AbilitySelectionScreen(PApplet applet, GameScreenManager screenManager, String entityName, List<Ability> abilities) {
+        this.applet = applet;
+        this.screenManager = screenManager;
+        this.entityName = entityName;
+        this.abilities = new ArrayList<>(abilities); // Make a copy of the abilities list
+    }
+
+    @Override
+    public void init() {
+        System.out.println("AbilitySelectionScreen initialized for " + entityName);
+    }
+
+    @Override
+    public void update() {
+        // Update logic for the ability selection screen
+    }
+
+    @Override
+    public void draw() {
+        applet.background(0);
+        applet.fill(255);
+        applet.textAlign(PApplet.CENTER, PApplet.CENTER);
+        applet.textSize(24);
+        applet.text("Edit Abilities for " + entityName, applet.width / 2, applet.height / 4);
+
+        applet.textSize(16);
+        if (editingAbility) {
+            applet.text("Editing: " + currentAbility.name, applet.width / 2, applet.height / 2 - 80);
+            if (inputNameMode) {
+                applet.text("Enter New Name: " + currentInput + "_", applet.width / 2, applet.height / 2 - 60);
+            } else {
+                drawEditingOptions();
+            }
+        } else {
+            for (int i = 0; i < abilities.size(); i++) {
+                if (i == selectedAbilityIndex) {
+                    applet.fill(200, 200, 50); // Highlight selected option
+                } else {
+                    applet.fill(255);
+                }
+                applet.text(abilities.get(i).name + " (Power: " + abilities.get(i).power + ", Weight: " + abilities.get(i).weight + ")", applet.width / 2, applet.height / 2 + i * 20);
+            }
+            // Add option to save changes and return
+            if (selectedAbilityIndex == abilities.size()) {
+                applet.fill(200, 200, 50); // Highlight selected option
+            } else {
+                applet.fill(255);
+            }
+            applet.text("Save changes and return to previous screen", applet.width / 2, applet.height / 2 + abilities.size() * 20 + 20);
+            //applet.text(" ", applet.width / 2, applet.height / 2 + abilities.size() * 20 + 40); Bottom instruction text
+        }
+    }
+
+    private void drawEditingOptions() {
+        String[] labels = {
+            "Name: " + currentAbility.name,
+            "Power: " + currentAbility.power,
+            "Weight: " + currentAbility.weight,
+            "Primary Type: " + currentAbility.primaryType,
+            "Secondary Type: " + currentAbility.secondaryType,
+            "Cooldown: " + currentAbility.cooldown,
+            "Remove Ability"
+        };
+
+        for (int i = 0; i < labels.length; i++) {
+            if (i == editingField) {
+                applet.fill(200, 200, 50); // Highlight selected option
+            } else {
+                applet.fill(255);
+            }
+            applet.text(labels[i], applet.width / 2, applet.height / 2 - 60 + i * 20);
+        }
+
+        if (editingField != 5 && editingField != 6) {
+            applet.fill(255); // Ensure instructions are not highlighted
+            applet.text("Use arrow keys to change values, ENTER to confirm", applet.width / 2, applet.height / 2 + 100);
+        } else if (editingField == 6) {
+            applet.fill(255); // Ensure instructions are not highlighted
+            applet.text("Press ENTER to remove this ability", applet.width / 2, applet.height / 2 + 100);
+        }
+    }
+
+    @Override
+    public void dispose() {
+        System.out.println("AbilitySelectionScreen disposed for " + entityName);
+    }
+
+    @Override
+    public void keyPressed() {
+        if (editingAbility) {
+            if (inputNameMode) {
+                handleNameInput();
+            } else {
+                handleAbilityEditing();
+            }
+        } else {
+            if (applet.keyCode == PApplet.UP) {
+                selectedAbilityIndex = (selectedAbilityIndex - 1 + abilities.size() + 1) % (abilities.size() + 1);
+            } else if (applet.keyCode == PApplet.DOWN) {
+                selectedAbilityIndex = (selectedAbilityIndex + 1) % (abilities.size() + 1);
+            } else if (applet.keyCode == PApplet.ENTER) {
+                if (selectedAbilityIndex == abilities.size()) {
+                    saveChangesAndReturn();
+                } else {
+                    editingAbility = true;
+                    currentAbility = abilities.get(selectedAbilityIndex);
+                    System.out.println("Editing ability: " + currentAbility.name);
+                }
+            } else if (applet.keyCode == PApplet.BACKSPACE) {
+                saveChangesAndReturn();
+            }
+        }
+    }
+    private void saveChangesAndReturn() {
+        GameDataManager dataManager = screenManager.getDataManager();
+        if ("Player".equals(entityName)) {
+            if (dataManager.getPlayer() != null) {
+                dataManager.getPlayer().abilities = abilities;
+            } else {
+                dataManager.setPlayer(new Character(entityName, 100, abilities)); // Provide default values if null
+            }
+        } else if ("Enemy".equals(entityName)) {
+            if (dataManager.getEnemy() != null) {
+                dataManager.getEnemy().abilities = abilities;
+            } else {
+                dataManager.setEnemy(new Character(entityName, 100, abilities)); // Provide default values if null
+            }
+        }
+        screenManager.showScreen(new CustomBattleScreen(applet, screenManager));
+    }
+
+    private void handleAbilityEditing() {
+        if (applet.keyCode == PApplet.ENTER) {
+            if (editingField == 0) {
+                inputNameMode = true;
+                currentInput = "";
+            } else if (editingField == 6) { // Remove ability
+                abilities.remove(selectedAbilityIndex);
+                editingAbility = false;
+                System.out.println("Ability removed.");
+            } else {
+                editingAbility = false;
+                System.out.println("Finished editing ability.");
+            }
+        } else if (applet.keyCode == PApplet.UP) {
+            editingField = (editingField - 1 + 7) % 7; // Update to include "Remove Ability"
+        } else if (applet.keyCode == PApplet.DOWN) {
+            editingField = (editingField + 1) % 7; // Update to include "Remove Ability"
+        } else if (editingField == 3 || editingField == 4) {
+            if (applet.keyCode == PApplet.LEFT || applet.keyCode == PApplet.RIGHT) {
+                if (editingField == 3) {
+                    cyclePrimaryType(applet.keyCode == PApplet.RIGHT);
+                } else {
+                    cycleSecondaryType(applet.keyCode == PApplet.RIGHT);
+                }
+            }
+        } else {
+            if (applet.keyCode == PApplet.LEFT) {
+                modifyCurrentField(-1);
+            } else if (applet.keyCode == PApplet.RIGHT) {
+                modifyCurrentField(1);
+            }
+        }
+    }
+
+    private void handleNameInput() {
+        System.out.println("Handling name input: " + currentInput);
+        if (applet.keyCode == PApplet.ENTER) {
+            currentAbility.name = currentInput;
+            inputNameMode = false;
+        } else if (applet.keyCode == PApplet.BACKSPACE) {
+            if (currentInput.length() > 0) {
+                currentInput = currentInput.substring(0, currentInput.length() - 1);
+            }
+        } else if (currentInput.length() < 16 && ((applet.key >= 'a' && applet.key <= 'z') || (applet.key >= 'A' && applet.key <= 'Z') || applet.key == ' ' || applet.key == '_')) {
+            currentInput += applet.key;
+        }
+    }
+
+    private void cyclePrimaryType(boolean forward) {
+        int currentIndex = java.util.Arrays.asList(damageTypes).indexOf(currentAbility.primaryType);
+        if (forward) {
+            currentAbility.primaryType = damageTypes[(currentIndex + 1) % damageTypes.length];
+        } else {
+            currentAbility.primaryType = damageTypes[(currentIndex - 1 + damageTypes.length) % damageTypes.length];
+        }
+    }
+
+    private void cycleSecondaryType(boolean forward) {
+        int currentIndex = java.util.Arrays.asList(damageTypes).indexOf(currentAbility.secondaryType);
+        if (forward) {
+            currentAbility.secondaryType = damageTypes[(currentIndex + 1) % damageTypes.length];
+        } else {
+            currentAbility.secondaryType = damageTypes[(currentIndex - 1 + damageTypes.length) % damageTypes.length];
+        }
+    }
+
+    private void modifyCurrentField(int amount) {
+        switch (editingField) {
+            case 1:
+                currentAbility.power = Math.max(1, currentAbility.power + amount);
+                break;
+            case 2:
+                currentAbility.weight = Math.max(0, currentAbility.weight + amount);
+                break;
+            case 5:
+                currentAbility.cooldown = Math.max(0, currentAbility.cooldown + amount);
+                break;
+        }
+    }
+}
+
+// ==========================================================
+// EFFECT HANDLER CLASS
+// Applies various effects to characters, including healing, damage, and status effects.
+// ==========================================================
+class EffectHandler {
+    private DamageCalculator damageCalculator;
+
+    public EffectHandler(DamageCalculator damageCalculator) {
+        this.damageCalculator = damageCalculator;
+    }
+
+    public void applyEffect(Character character, Effect effect) {
+        switch (effect.type) {
+            case "heal":
+                applyHealingEffect(character, effect);
+                break;
+            case "reverseHeal":
+                applyReverseHealingEffect(character, effect);
+                break;
+            case "burnStatus":
+                applyStatusEffect(character, effect);
+                break;
+            default:
+                if (effect.type.endsWith("Damage")) {
+                    applyDamageEffect(character, effect);
+                } else if (effect.type.endsWith("Blocked")) {
+                    applyBlockEffect(character, effect);
+                } else if (effect.type.endsWith("Absorbed")) {
+                    applyAbsorbEffect(character, effect);
+                }
+                break;
+        }
+    }
+
+    private void applyHealingEffect(Character character, Effect effect) {
+        character.health += effect.magnitude;
+        System.out.println(character.name + " heals for " + effect.magnitude + " HP.");
+    }
+
+    private void applyReverseHealingEffect(Character character, Effect effect) {
+        character.health -= effect.magnitude;
+        System.out.println(character.name + " takes " + effect.magnitude + " reverse healing damage.");
+    }
+
+    private void applyStatusEffect(Character character, Effect effect) {
+        character.statusEffects.add(new Effect(effect.type, effect.magnitude, effect.duration));
+        System.out.println(character.name + " is affected by " + effect.type + " with magnitude " + effect.magnitude + " for " + effect.duration + " turns.");
+    }
+
+    private void applyDamageEffect(Character character, Effect effect) {
+        int actualDamage = damageCalculator.calculateActualDamage(character, effect.type, effect.magnitude);
+        character.health -= actualDamage;
+        System.out.println(character.name + " takes " + actualDamage + " " + effect.type + " damage.");
+    }
+
+    private void applyBlockEffect(Character character, Effect effect) {
+        String blockType = effect.type.replace("Blocked", "").toLowerCase();
+        character.blockEffects.put(blockType, character.blockEffects.getOrDefault(blockType, 0) + effect.magnitude);
+        System.out.println(character.name + " blocks " + effect.magnitude + " " + blockType + " damage.");
+    }
+
+    private void applyAbsorbEffect(Character character, Effect effect) {
+        String absorbType = effect.type.replace("Absorbed", "").toLowerCase();
+        character.absorbEffects.put(absorbType, character.absorbEffects.getOrDefault(absorbType, 0) + effect.magnitude);
+        System.out.println(character.name + " absorbs " + effect.magnitude + " " + absorbType + " damage.");
+    }
+}
+
+// ==========================================================
+// STATUS EFFECT MANAGER CLASS
+// ==========================================================
+class StatusEffectManager {
+    public void applyStatusEffects(List<Character> characters, EffectHandler effectHandler, StringBuilder battleLog) {
+        for (Character character : characters) {
+            Iterator<Effect> iterator = character.statusEffects.iterator();
+            while (iterator.hasNext()) {
+                Effect effect = iterator.next();
+                if (effect.duration > 0) {
+                    effectHandler.applyEffect(character, new Effect(effect.type, effect.magnitude, 0));
+                    effect.duration--;
+                    if (effect.duration > 0) {
+                        battleLog.append(character.name + " is affected by " + effect.type + ". " + effect.duration + " turn(s) remaining.\n");
+                    } else {
+                        iterator.remove();
+                        battleLog.append(character.name + " is no longer affected by " + effect.type + ".\n");
+                    }
+                } else {
+                    iterator.remove();
+                }
+            }
+        }
+    }
+}
+// ==========================================================
+// DAMAGE CALCULATOR CLASS
+// Calculates actual damage values for characters, considering resistances, block effects, and critical hits.
+// ==========================================================
+class DamageCalculator {
+    private static final Random random = new Random();
+
+    public int calculateActualDamage(Character character, String type, int magnitude) {
+        int flatResistance = character.flatResistances.getOrDefault(type, 0);
+        int percentResistance = character.percentResistances.getOrDefault(type, 0);
+        int bonus = character.bonusDamage.getOrDefault(type, 0);
+        int blockValue = character.blockEffects.getOrDefault(type.replace("Damage", ""), 0); // Get block value for the damage type
+        int absorbValue = character.absorbEffects.getOrDefault(type.replace("Damage", ""), 0); // Get absorb value for the damage type
+
+        int reducedByFlat = magnitude - flatResistance - blockValue; // Include block value in damage reduction
+        int finalDamage = reducedByFlat * (100 - percentResistance) / 100 + bonus;
+
+        // Calculate critical hit chance
+        if (random.nextDouble() < character.baseCritChance / 100.0) {
+            finalDamage *= 2; // Example crit multiplier
+            System.out.println("Critical hit! Damage doubled.");
+        }
+
+        // Apply absorb effects
+        if (finalDamage > 0 && absorbValue > 0) {
+            int absorbedAmount = Math.min(finalDamage, absorbValue);
+            character.health += absorbedAmount;
+            finalDamage -= absorbedAmount;
+            System.out.println(character.name + " absorbs " + absorbedAmount + " damage and heals for " + absorbedAmount + ".");
+        }
+
+        return Math.max(finalDamage, 0); // Ensure damage is not negative
+    }
+}
+// ==========================================================
+// GAME DATA MANAGER CLASS
+// Manages the game data for player and enemy characters, 
+// including storing and retrieving character details.
+// ==========================================================
+class GameDataManager {
+    private Character player;
+    private Character enemy;
+
+    public Character getPlayer() {
+        return player;
+    }
+
+    public void setPlayer(Character player) {
+        this.player = player;
+    }
+
+    public Character getEnemy() {
+        return enemy;
+    }
+
+    public void setEnemy(Character enemy) {
+        this.enemy = enemy;
+    }
+}
+
+
