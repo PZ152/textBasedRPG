@@ -6,3 +6,4 @@ Processing has an IDE that is small and can run the code, you just need to save 
 I've been using Visual Studio Code with Processing plugins to code in, takes some setting up get it functional and running code, chatGPT helped instruct me there too.
 VS Code has many more features and can use Amazon Q, a coding AI built into the editor, but tbh I havent even started using that, only installed.
 Collapsing functions and navigating the code though are much easier when the code is so long. I could split it into files and will eventually, but keeping all the code in one file makes feeding chatGPT updates very easy and consistent. 
+For some reason the normal Java Character.isDigit(char) and Character.isLetterOrDigit(char) aren't available, so methods are manually implemented when needed.
