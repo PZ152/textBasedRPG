@@ -12,6 +12,7 @@ For some reason the normal Java Character.isDigit(char) and Character.isLetterOr
 INSTALL
 Unzip TextRPG Program Files into their own folder.
 > Run TextBasedRPG.exe from folder
+(Java not included, some may need to install OpenJDK 17)
 
 
 Notes about current state!
