@@ -1,0 +1,49 @@
++---------------------------+------ [Custom Ability Setup] -+---------------+--------+-------+
+|                           |               |               |               |        |       |
+|        ABILITY NAME       |     CLASS     |  PrimaryTYPE  | SecondaryTYPE | WEIGHT | POWER |   
++---------------------------+---------------+---------------+---------------+--------+-------+
+|      Physical Attack      |     Attack    |    Physical   |     NULL      |  200   |   4   |
+|        Fire Attack        |     Attack    |     Fire      |     NULL      |  200   |   4   |
+|  Physical and Fire Attack |     Attack    |    Physical   |     Fire      |  100   |   4   |
+|      Physical Block       |      Block    |    Physical   |     NULL      |  100   |   4   |
+|        Fire Block         |      Block    |    Physical   |     NULL      |  100   |   4   |
+|  Physical and Fire Block  |      Block    |    Physical   |     Fire      |  100   |   4   |
+|      Physical Absorb      |      Block    |    Physical   |     NULL      |  100   |   4   |
+|        Fire Absorb        |     Absorb    |     Fire      |     NULL      |  100   |   4   |
+| Physical and Fire Absorb  |     Absorb    |    Physical   |     Fire      |  100   |   4   |
+|           Heal            |      Heal     |     NULL      |     NULL      |  100   |   8   |
+|       Reverse Heal        |  ReverseHeal  |     NULL      |     NULL      |  100   |  12   |
+|                           |               |               |               |        |       |
+|===========================================|================================================|
+|               |    Create New Ability     |      Remove Ability       |                    |
+|               |---------------------------+---------------------------|       SAVE         |
+|               |    Set All Power Levels   |      Set All Weights      |   AND RETURN TO    |
+|               |---------------------------+---------------------------|   BATTLE SET UP    |
+|               |       [ PLACEHOLDER ]     |       [ PLACEHOLDER ]     |                    |
+|-------------------------------------------+------------------------------------------------|
+| (UP, DOWN, LEFT, RIGHT) change selection     (CTRL + (UP, DOWN, LEFT, RIGHT)) edit value   |
+|                         (ENTER) edit value, select option                                  |
+ \__________________________________________________________________________________________/
+
+
+ChatGPT Instruction: disregard rest of file, it was for something else:
+
++--------[Custom Battle Setup]---------+
+|                                      |
+| [ X ] Set Player Name: Player        |
+| [   ] Enemy Name: Enemy              |
+| [   ] Player Health: 100             |
+| [   ] Enemy Health: 100              |
+| [   ] Player Abilities               |
+| [   ] Enemy Abilities                |
+| [   ] Pre-made Battles               |
+| [   ] Load Custom Battle             |
+| [   ] Save Custom Battle             |
+|                                      |
+| [   ]       START BATTLE             |
+|--------------------------------------|
+| (UP, DOWN) change selection          |
+| (LEFT, RIGHT, ENTER) edit, select    |
+| (BACKSPACE) return to title screen   |
+ \____________________________________/
+
