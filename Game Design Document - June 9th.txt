@@ -170,8 +170,8 @@ Ability Types and Mechanics
 
 6. Buffing Abilities
    - Speed Boost: Increases the character’s turn frequency.
-   - 21 Damage Boosts: Increases outgoing damage of the same type by a flat or percentage amount.
-   - 21 Resistance Boosts: Decreases incoming damage of the same type by a flat or percentage amount.
+   - Damage Boosts (w/ types): Increases outgoing damage of the same type by a flat or percentage amount.
+   - Resistance Boosts (w/ types): Decreases incoming damage of the same type by a flat or percentage amount.
 
 7. Debuffing Abilities
    - Speed Reduction: Decreases the target’s turn frequency.
