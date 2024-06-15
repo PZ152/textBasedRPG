@@ -19,4 +19,4 @@ Notes about current state!
 -New Game has been abandoned while building the foundation and custom battle setup
 - pre-made battles, Loading and Saving custom battles not yet implemented
 - adding abilities in the ability selection screen not fully implemented - needs to ask ability classType first, not allowed to edit classType of existing abilities
-- its been a while since I worked on the battle screen, spacing and scrolling seem to be broken
+- [EDIT: this is fixed now] its been a while since I worked on the battle screen, spacing and scrolling seem to be broken
