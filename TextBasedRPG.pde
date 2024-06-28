@@ -619,7 +619,7 @@ abstract class Ability {
       System.out.println(name + " cooldown: " + currentCooldown);
     }
   }
-  abstract HashMap<String, Integer> output();
+  abstract ArrayList<Effect> output();
   abstract String generateMessage(String casterName, int chance);
   public abstract Ability clone();
 }
@@ -633,11 +633,11 @@ class Attack extends Ability {
     classType = "Attack";
   }
 
-  @Override HashMap<String, Integer> output() {
-    HashMap<String, Integer> effects = new HashMap<>();
-    effects.put(primaryType.toLowerCase() + "Damage", power); // Ensure lowercase and correct format
+  @Override ArrayList<Effect> output() {
+    ArrayList<Effect> effects = new ArrayList<Effect>();
+    effects.add(new Effect(primaryType.toLowerCase() + "Damage", power, 0)); // Ensure lowercase and correct format
     if (!secondaryType.isEmpty()) {
-      effects.put(secondaryType.toLowerCase() + "Damage", power); // Include secondary type if present
+      effects.add(new Effect(secondaryType.toLowerCase() + "Damage", power, 0)); // Include secondary type if present
     }
     return effects;
   }
@@ -665,13 +665,13 @@ class Block extends Ability {
     classType = "Block";
   }
 
-  @Override HashMap<String, Integer> output() {
-    HashMap<String, Integer> effects = new HashMap<>();
+  @Override ArrayList<Effect> output() {
+    ArrayList<Effect> effects = new ArrayList<Effect>();
     if (!primaryType.isEmpty()) {
-      effects.put(primaryType.toLowerCase() + "Blocked", power);
+      effects.add(new Effect(primaryType.toLowerCase() + "Blocked", power, 0));
     }
     if (!secondaryType.isEmpty()) {
-      effects.put(secondaryType.toLowerCase() + "Blocked", power);
+      effects.add(new Effect(secondaryType.toLowerCase() + "Blocked", power, 0));
     }
     return effects;
   }
@@ -704,9 +704,9 @@ class Heal extends Ability {
     classType = "Heal";
   }
 
-  @Override HashMap<String, Integer> output() {
-    HashMap<String, Integer> effects = new HashMap<>();
-    effects.put("heal", power);
+  @Override ArrayList<Effect> output() {
+    ArrayList<Effect> effects = new ArrayList<Effect>();
+   effects.add(new Effect("heal", power, 0));
     return effects;
   }
 
@@ -728,9 +728,9 @@ class ReverseHeal extends Ability {
     classType = "ReverseHeal";
   }
 
-  @Override HashMap<String, Integer> output() {
-    HashMap<String, Integer> effects = new HashMap<>();
-    effects.put("reverseHeal", power);
+  @Override ArrayList<Effect> output() {
+    ArrayList<Effect> effects = new ArrayList<Effect>();
+    effects.add(new Effect("reverseHeal", power, 0));
     return effects;
   }
 
@@ -752,13 +752,13 @@ class Absorb extends Ability {
     classType = "Absorb";
   }
 
-  @Override HashMap<String, Integer> output() {
-    HashMap<String, Integer> effects = new HashMap<>();
+  @Override ArrayList<Effect> output() {
+    ArrayList<Effect> effects = new ArrayList<Effect>();
     if (!primaryType.isEmpty()) {
-      effects.put(primaryType.toLowerCase() + "Absorbed", power);
+      effects.add(new Effect(primaryType.toLowerCase() + "Absorbed", power, 0));
     }
     if (!secondaryType.isEmpty()) {
-      effects.put(secondaryType.toLowerCase() + "Absorbed", power);
+      effects.add(new Effect(secondaryType.toLowerCase() + "Absorbed", power, 0));
     }
     return effects;
   }
@@ -779,6 +779,38 @@ class Absorb extends Ability {
   @Override public Absorb clone() {
     return new Absorb(this.name, this.power, this.weight, this.primaryType, this.secondaryType, this.cooldown);
   }
+}
+
+// ==========================================================
+// DAMAGE OVER TIME SKILL CLASS(INHERITS ABILITY)
+// Applies a DoT that does (power/4)+1 damage , for (power +2) turns
+// ==========================================================
+class DoTskill extends Ability {
+
+    DoTskill(String name, int power, int weight, String primaryType, String secondaryType, int cooldown) {
+        super(name, power, weight, primaryType, secondaryType, cooldown);
+        classType = "DoTskill";
+    }
+
+  @Override ArrayList<Effect> output() {
+    ArrayList<Effect> effects = new ArrayList<Effect>();
+        effects.add(new Effect(primaryType.toLowerCase() + "DoT", (power/4)+1, power + 2)); //Applies a DoT that does (power/4)+1 damage , for (power +2) turns
+        return effects;
+    }
+
+    @Override
+    String generateMessage(String casterName, int chance) {
+        String message = casterName + " attacks with " + name;
+        message += " and applies " + int((power/4)+1) + " " + primaryType.toLowerCase() + " damage over " + (power + 2) + " turns.";
+        message += " (Power Level " + power + " | " + chance + "% Chance)";
+        return message;
+    }
+
+    @Override
+    public DoTskill clone() {
+        return new DoTskill(this.name, this.power, this.weight, this.primaryType, this.secondaryType, this.cooldown);
+    }
+
 }
 // ==========================================================
 // CHARACTER CLASS
@@ -1141,8 +1173,8 @@ class BattleManager {
       battleLog.append(playerAbility.generateMessage(player.name, playerChance)).append("\n");
     }
     // Step 2: Get the output effects of each chosen ability
-    HashMap<String, Integer> playerEffects = playerAbility.output();
-    HashMap<String, Integer> enemyEffects = enemyAbility.output();
+    ArrayList<Effect> playerEffects = playerAbility.output();
+    ArrayList<Effect> enemyEffects = enemyAbility.output();
 
     // Step 3: Add self-targeted effects to each character's list of effects
     applySelfEffects(player, playerEffects); // Apply player's self-effects to the player
@@ -1161,17 +1193,19 @@ class BattleManager {
     List<Effect> effects3 = enemy.getEffects();
     System.out.println("Initial enemy effects after collection: " + effects3);
   }
-  // Helper method to apply self-targeted effects to a character
-  private void applySelfEffects(Character character, HashMap<String, Integer> effects) {
-    for(Map.Entry < String, Integer > entry : effects.entrySet()) {
-      String effectType = entry.getKey();
-      int magnitude = entry.getValue();
 
-      if (effectType.equals("heal") || effectType.endsWith("Blocked") || effectType.endsWith("Absorbed")) {
-        character.addEffect(new Effect(effectType, magnitude, 0));
-      }
+  // Helper method to apply self-targeted effects to a character
+  private void applySelfEffects(Character character, ArrayList<Effect> effects) {
+    for (Effect effect : effects) {
+    String effectType = effect.type;
+    int magnitude = effect.magnitude;
+
+    if (effectType.equals("heal") || effectType.endsWith("Blocked") || effectType.endsWith("Absorbed")) {
+      character.addEffect(new Effect(effectType, magnitude, 0));
+    }
     }
   }
+  
 
   private int calculateChance(Character character, Ability ability) {
     int totalWeight = 0;
@@ -1183,16 +1217,17 @@ class BattleManager {
     return(int)((ability.weight /(double) totalWeight) * 100);
   }
   // Helper method to apply opponent-targeted effects to a character
-  private void applyOpponentEffects(Character character, HashMap<String, Integer> effects) {
-    for(Map.Entry < String, Integer > entry : effects.entrySet()) {
-      String effectType = entry.getKey();
-      int magnitude = entry.getValue();
+    private void applyOpponentEffects(Character character, ArrayList<Effect> effects) {
+      for (Effect effect : effects) {
+        String effectType = effect.type;
+        int magnitude = effect.magnitude;
 
-      if (effectType.endsWith("Damage") || effectType.equals("reverseHeal")) {
-        character.addEffect(new Effect(effectType, magnitude, 0));
+        if (effectType.endsWith("Damage") || effectType.equals("reverseHeal")) {
+          character.addEffect(new Effect(effectType, magnitude, 0));
+        }
       }
     }
-  }
+
   //Helper method that runs the EffectProcessor for each character and applys the results
 
   public void resolveActions() {
